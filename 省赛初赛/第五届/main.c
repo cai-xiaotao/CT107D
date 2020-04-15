@@ -63,6 +63,7 @@ void Timer0Init(void)		//1毫秒@11.0592MHz
 	EA=1;
 }
 uchar led_temp;
+bit blink;
 void main()
 {
 	uchar temp,tmp,j;
@@ -73,6 +74,7 @@ void main()
 	Timer0Init();
 	while(1)
 	{
+		temp=rd_temperature();
 		//按键单元
 		if(key_flag==1)
 		{
@@ -80,18 +82,10 @@ void main()
 			KBD();
 			switch(Trg ^ 0xFF)
 			{
-				case 0x77:
-					tmp=9;
-					break;
-				case 0x7b:
-					tmp=6;
-					break;
-				case 0x7d:
-					tmp=3;
-					break;
-				case 0x7e:
-					tmp=0;
-					break;
+				case 0x77:tmp=9;break;
+				case 0x7b:tmp=6;break;
+				case 0x7d:tmp=3;break;
+				case 0x7e:tmp=0;break;
 				case 0xb7:
 					if(menu_flag==1)menu_flag=2;
 					else 
@@ -106,15 +100,9 @@ void main()
 						menu_flag=1;
 					}
 					break;
-				case 0xbb:
-					tmp=7;
-					break;
-				case 0xbd:
-					tmp=4;
-					break;
-				case 0xbe:
-					tmp=1;
-					break;
+				case 0xbb:tmp=7;break;
+				case 0xbd:tmp=4;break;
+				case 0xbe:tmp=1;break;
 				case 0xd7:
 					if(menu_flag==2)
 					{
@@ -123,15 +111,9 @@ void main()
 						num[2]=10;num[3]=10;
 					}
 					break;
-				case 0xdb:
-					tmp=8;
-					break;
-				case 0xdd:
-					tmp=5;
-					break;
-				case 0xde:
-					tmp=2;
-					break;
+				case 0xdb:tmp=8;break;
+				case 0xdd:tmp=5;break;
+				case 0xde:tmp=2;break;
 			}
 			if(tmp!=10 && j<4 && menu_flag==2)
 			{
@@ -143,7 +125,6 @@ void main()
 		//数码管单元
 		if(menu_flag==1)
 		{
-			temp=rd_temperature();
 			menu1[0]=0xbf;menu1[2]=0xbf;
 			if(temp < temp_min)menu1[1]=tab[0];
 			else if(temp > temp_max)menu1[1]=tab[2];
@@ -171,6 +152,16 @@ void main()
 		}else {P0=0x00;P2=0xa0;P0=0x00;P2=0;}
 		if(fault)led_temp=0x02;
 		else led_temp=0x00;
+		
+		if(blink)
+		{
+			P0=~(0x01|led_temp);
+			P2=0x80;P0=~(0x01|led_temp);P2=0x00;
+		}else
+		{
+			P0=~(0x00|led_temp);
+			P2=0x80;P0=~(0x00|led_temp);P2=0x00;
+		}
 	}
 }
 uint led_cnt;
@@ -185,6 +176,7 @@ void Timer0()interrupt 1
 	if(smg_cnt==2)
 	{
 		smg_cnt=0;
+		P2=0xe0;P0=0xff;P2=0;
 		P2=0xc0;P0=0x01<<i;P2=0;
 		if(menu_flag==1){P2=0xe0;P0=menu1[i];P2=0;}
 		if(menu_flag==2){P2=0xe0;P0=menu2[i];P2=0;}
@@ -194,32 +186,30 @@ void Timer0()interrupt 1
 	if(flash==1)
 	{
 		led_cnt++;
-		if(led_cnt<800)
-		{P2=0x80;P0=~(0x01|led_temp);P2=0;}
-		else 
+		if(led_cnt==800)
 		{
-			if(led_cnt==1600)led_cnt=0;
-			P2=0x80;P0=~led_temp;P2=0;
+			led_cnt=0;
+			blink=~blink;
 		}
 	}else if(flash==2)
 	{
 		led_cnt++;
-		if(led_cnt<400)
-		{P2=0x80;P0=~(0x01|led_temp);P2=0;}
-		else 
+		if(led_cnt==400)
 		{
-			if(led_cnt==800)led_cnt=0;
-			P2=0x80;P0=~led_temp;P2=0;
+			led_cnt=0;
+			blink=~blink;
 		}
 	}else if(flash==3)
 	{
 		led_cnt++;
-		if(led_cnt<200)
-		{P2=0x80;P0=~(0x01|led_temp);P2=0;}
-		else 
+		if(led_cnt==200)
 		{
-			if(led_cnt==400)led_cnt=0;
-			P2=0x80;P0=~led_temp;P2=0;
+			led_cnt=0;
+			blink=~blink;
 		}
+	}else
+	{
+		led_cnt=0;
+		blink=0;
 	}
 }
